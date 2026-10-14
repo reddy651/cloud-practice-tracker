@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Cloud Practice Tracker V4 — Screenshots + AI + Azure Activity Log → Blob/S3 → Website
 
 This version is designed for a user who does not want to type practice explanations manually.
@@ -152,3 +153,7 @@ For longer-term or higher-volume retention, Azure Monitor can also export Activi
 - Exact duplicate screenshots and duplicate explanations are rejected for new steps.
 - Final Word/PDF creation is blocked if existing saved steps contain exact duplicate screenshots, duplicate explanations, or missing explanations; remove/fix the offending step first.
 - After finalizing, **Edit / Add More Screenshots** reopens the practice so more sequential steps can be added.
+=======
+# cloud-practice-tracker
+Azure Devops Practice Tracker
+>>>>>>> e8dc03c2e95a74644342055d3206294efdac5212
