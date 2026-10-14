@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="row between">
+  <div><div class="eyebrow">YOUR LEARNING PORTFOLIO</div><h1>My Practice</h1><p>Welcome, {{ current_user.name }}. Capture screenshots, let AI document them, and keep the final PDF.</p></div>
+  <a class="btn" href="{{ url_for('practice.new_practice') }}">+ New Practice</a>
+</div>
+<div class="stats">
+  <div class="stat"><b>{{ practices|length }}</b><span>Total Practices</span></div>
+  <div class="stat"><b>{{ practices|selectattr('provider','equalto','Azure')|list|length }}</b><span>Azure</span></div>
+  <div class="stat"><b>{{ practices|selectattr('provider','equalto','Linux')|list|length }}</b><span>Linux</span></div>
+</div>
+<div class="card">
+<table>
+<thead><tr><th>Date</th><th>Title</th><th>Provider</th><th>Screenshots</th><th>AI</th><th>Status</th><th></th></tr></thead>
+<tbody>
+{% for p in practices %}
+<tr>
+<td>{{ p.created_at.strftime('%Y-%m-%d') if p.created_at else '' }}</td>
+<td><b>{{ p.title }}</b><br><span class="muted">{{ p.topic or p.service or '-' }}</span></td>
+<td>{{ p.provider }}</td>
+<td>{{ p.screenshots|length }}</td>
+<td>{% if p.ai_analyzed_at %}<span class="badge">Analyzed</span>{% else %}<span class="muted">Pending</span>{% endif %}</td>
+<td>{{ p.status }}</td>
+<td><a href="{{ url_for('practice.detail', practice_id=p.id) }}">Open</a></td>
+</tr>
+{% else %}
+<tr><td colspan="7">No practices yet. Start by uploading screenshots.</td></tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+{% endblock %}

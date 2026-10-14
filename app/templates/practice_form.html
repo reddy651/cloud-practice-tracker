@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}New Practice{% endblock %}
+{% block content %}
+<div class="card hero-card">
+  <div class="eyebrow">STEP-BY-STEP PRACTICE DOCUMENTATION</div>
+  <h1>Create a New Practice</h1>
+  <p class="lead">Create the practice first. Then you will paste one screenshot, type exactly what you did, and click <b>Save Step</b>. After it is saved, paste the next screenshot and repeat.</p>
+
+  <form method="post" class="grid" id="new-practice-form">
+    <label>Practice title
+      <input name="title" placeholder="Example: Configure NSG on Subnet Level">
+    </label>
+    <label>Provider
+      <select name="provider">
+        {% for option in ['Azure','AWS','Linux','Azure DevOps','DevOps','VMware','Docker','Kubernetes','Terraform','Other'] %}
+        <option value="{{ option }}">{{ option }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Service
+      <input name="service" placeholder="Example: Virtual Network / NSG">
+    </label>
+    <label>Topic
+      <input name="topic" placeholder="Example: Subnet-level security">
+    </label>
+    <label class="full">Optional context
+      <textarea name="context" rows="3" placeholder="Optional notes about what you are practicing."></textarea>
+    </label>
+    <div class="full">
+      <button class="btn" type="submit">Create Practice & Start Step 001</button>
+      <a class="btn secondary" href="{{ url_for('practice.dashboard') }}">Cancel</a>
+    </div>
+  </form>
+</div>
+
+<div class="card tip-card">
+  <h2>How it works</h2>
+  <ol>
+    <li>Create the practice.</li>
+    <li>Paste <b>one screenshot</b>.</li>
+    <li>Type the exact step explanation.</li>
+    <li>Click <b>Save Step</b>.</li>
+    <li>Paste the next screenshot and repeat.</li>
+    <li>When finished, click <b>Save Document</b>.</li>
+    <li>The Word document is created and shown on the practice page.</li>
+    <li>Click <b>Convert to PDF</b> to create the PDF.</li>
+  </ol>
+</div>
+{% endblock %}

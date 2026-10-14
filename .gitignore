@@ -1,0 +1,31 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+instance/
+uploads/
+*.pdf
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# Local development
+*.log
+instance/
+
+# Generated files
+*.pdf
+*.docx
+
+# Editor files
+.vscode/
+.idea/

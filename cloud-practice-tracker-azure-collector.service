@@ -1,0 +1,16 @@
+[Unit]
+Description=Cloud Practice Tracker Azure Activity Log Collector
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/cloud-practice-tracker
+EnvironmentFile=/root/cloud-practice-tracker/.env
+ExecStart=/root/cloud-practice-tracker/.venv/bin/python /root/cloud-practice-tracker/azure_collector.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

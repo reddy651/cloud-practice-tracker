@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}AI Assistant{% endblock %}
+{% block content %}
+<div class="row between"><div><div class="eyebrow">AI ASSISTANT</div><h1>Ask IT Questions</h1><p>Ask about Azure, AWS, Linux, DevOps, Docker, Terraform, networking and infrastructure.</p></div><a class="btn secondary" href="{{ url_for('practice.dashboard') }}">Back</a></div>
+<div class="card ai-card">
+<form method="post">
+<label for="question"><b>Your question</b></label>
+<textarea id="question" name="question" rows="5" placeholder="Example: Why can't my private Azure VM access the internet through NAT Gateway?">{{ question }}</textarea>
+<button class="btn" type="submit">Ask AI</button>
+</form>
+</div>
+{% if answer %}<div class="card"><h2>AI Answer</h2><div class="answer">{{ answer|e|replace('\n','<br>')|safe }}</div></div>{% endif %}
+{% endblock %}

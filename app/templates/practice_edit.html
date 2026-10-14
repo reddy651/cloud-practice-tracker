@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block title %}Edit Practice{% endblock %}
+{% block content %}
+<div class="row between">
+  <div><div class="eyebrow">EDIT ANYTIME</div><h1>Edit Practice</h1><p class="muted">AI can fill the practice fields from your saved step explanations and create 25 technology-specific interview questions, including troubleshooting scenarios.</p></div>
+  <div class="actions">
+    <button class="btn secondary" type="button" id="ai-fill-btn">✨ Generate / Refresh with AI</button>
+    <a class="btn secondary" href="{{ url_for('practice.detail', practice_id=practice.id) }}">Back</a>
+  </div>
+</div>
+
+<div class="card" id="ai-status-card" style="display:none;">
+  <strong id="ai-status-title">AI is preparing your practice notes...</strong>
+  <p class="muted" id="ai-status-text">It uses the saved step explanations as the primary evidence.</p>
+</div>
+
+<div class="card">
+<form method="post" class="grid" id="edit-practice-form">
+  <label>Title<input id="title" name="title" value="{{ practice.title }}" required></label>
+  <label>Provider<select id="provider" name="provider">{% for option in ['Azure','AWS','Linux','Azure DevOps','DevOps','VMware','Docker','Kubernetes','Terraform','Other'] %}<option value="{{ option }}" {% if practice.provider == option %}selected{% endif %}>{{ option }}</option>{% endfor %}</select></label>
+  <label>Service<input id="service" name="service" value="{{ practice.service or '' }}"></label>
+  <label>Topic<input id="topic" name="topic" value="{{ practice.topic or '' }}"></label>
+  <label>Start time<input type="datetime-local" name="started_at" value="{{ practice.started_at.strftime('%Y-%m-%dT%H:%M') if practice.started_at else '' }}"></label>
+  <label>End time<input type="datetime-local" name="ended_at" value="{{ practice.ended_at.strftime('%Y-%m-%dT%H:%M') if practice.ended_at else '' }}"></label>
+  <label>Status<select name="status">{% for option in ['Draft','In Progress','Completed','Failed'] %}<option value="{{ option }}" {% if practice.status == option %}selected{% endif %}>{{ option }}</option>{% endfor %}</select></label>
+  <div></div>
+  <label class="full">Description<textarea id="description" name="description" rows="5">{{ practice.description or '' }}</textarea></label>
+  <label class="full">What I Practiced / Learned<textarea id="notes" name="notes" rows="7">{{ practice.notes or '' }}</textarea></label>
+  <label class="full">Problems<textarea id="problems" name="problems" rows="5">{{ practice.problems or '' }}</textarea></label>
+  <label class="full">Solutions<textarea id="solutions" name="solutions" rows="5">{{ practice.solutions or '' }}</textarea></label>
+  <label class="full">Commands / Technical Notes<textarea id="commands" name="commands" rows="8">{{ practice.commands or '' }}</textarea></label>
+  <label class="full">Interview Questions<textarea id="interview_questions" name="interview_questions" rows="18">{{ practice.interview_questions or '' }}</textarea></label>
+
+  <div class="full" id="interview-answers-section">
+    <h3 style="margin-bottom:8px;">Interview Answers</h3>
+    {% if practice.interview_answers and practice.interview_answers_available_at and now >= practice.interview_answers_available_at %}
+      <p class="muted">✅ The 24-hour waiting period is complete. The AI-generated answers are now available.</p>
+      <textarea id="interview_answers" name="interview_answers" rows="22">{{ practice.interview_answers }}</textarea>
+    {% elif practice.interview_answers_available_at %}
+      <div class="card" style="margin:0;">
+        <strong>🔒 Answers are locked for 24 hours.</strong>
+        <p class="muted" id="answers-countdown">Answers will be displayed after {{ practice.interview_answers_available_at.strftime('%d-%b-%Y %H:%M') }}.</p>
+      </div>
+    {% else %}
+      <div class="card" style="margin:0;">
+        <strong>🔒 Answers are not generated yet.</strong>
+        <p class="muted">Use Generate / Refresh with AI to create the questions and their hidden answers.</p>
+      </div>
+    {% endif %}
+  </div>
+  <div class="full"><button class="btn" type="submit">Save Changes</button></div>
+</form>
+</div>
+
+<script>
+(function () {
+  const btn = document.getElementById('ai-fill-btn');
+  const card = document.getElementById('ai-status-card');
+  const title = document.getElementById('ai-status-title');
+  const text = document.getElementById('ai-status-text');
+  const endpoint = {{ url_for('practice.ai_fill_practice_edit', practice_id=practice.id) | tojson }};
+  const alreadyGenerated = {{ 'true' if practice.ai_analyzed_at else 'false' }};
+  const hasInterviewQuestions = {{ 'true' if practice.interview_questions else 'false' }};
+  const hasInterviewAnswers = {{ 'true' if practice.interview_answers else 'false' }};
+  const answersAvailableAt = {{ (practice.interview_answers_available_at.isoformat() if practice.interview_answers_available_at else '') | tojson }};
+
+  function renderAnswerLock(availableAt) {
+    const section = document.getElementById('interview-answers-section');
+    if (!section || !availableAt) return;
+    section.innerHTML = `
+      <h3 style="margin-bottom:8px;">Interview Answers</h3>
+      <div class="card" style="margin:0;">
+        <strong>🔒 Answers are locked for 24 hours.</strong>
+        <p class="muted" id="answers-countdown">Answers are being held for the 24-hour study period.</p>
+      </div>`;
+    startAnswerCountdown(availableAt);
+  }
+
+  function setStatus(message, ok) {
+    card.style.display = 'block';
+    title.textContent = ok ? '✓ AI fields generated' : 'AI generation failed';
+    text.textContent = message;
+  }
+
+  function fill(data) {
+    const ids = ['title','service','topic','description','notes','problems','solutions','commands','interview_questions'];
+    ids.forEach(id => {
+      if (data[id] !== undefined) document.getElementById(id).value = data[id] || '';
+    });
+    // Provider is kept from the existing practice as the authoritative value.
+  }
+
+  async function generate() {
+    btn.disabled = true;
+    btn.textContent = '⏳ Generating with AI...';
+    card.style.display = 'block';
+    title.textContent = 'AI is preparing your practice notes...';
+    text.textContent = 'Generating the practice summary, 25 interview questions, and 25 matching answers. Answers are locked for 24 hours.';
+    try {
+      const response = await fetch(endpoint, {method: 'POST', headers: {'X-Requested-With': 'XMLHttpRequest'}});
+      const result = await response.json();
+      if (!response.ok || !result.ok) throw new Error(result.error || 'AI generation failed.');
+      fill(result.data);
+      renderAnswerLock(result.answers_available_at);
+      setStatus('The fields are filled from your saved practice steps. Questions are available now; answers are generated and locked for 24 hours.', true);
+    } catch (err) {
+      setStatus(err.message, false);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '✨ Generate / Refresh with AI';
+    }
+  }
+
+  btn.addEventListener('click', generate);
+
+  // Automatically generate once when the practice has not yet been AI-enriched.
+  if (!alreadyGenerated || !hasInterviewQuestions || !hasInterviewAnswers) {
+    generate();
+  }
+
+  function startAnswerCountdown(availableAt) {
+    const el = document.getElementById('answers-countdown');
+    if (!el || !availableAt) return;
+    const target = new Date(availableAt).getTime();
+    const tick = () => {
+      const diff = target - Date.now();
+      if (diff <= 0) {
+        el.textContent = 'The 24-hour waiting period is complete. Refresh this page to display the answers.';
+        return;
+      }
+      const hours = Math.floor(diff / 3600000);
+      const mins = Math.floor((diff % 3600000) / 60000);
+      const secs = Math.floor((diff % 60000) / 1000);
+      el.textContent = `Answers will be displayed in ${hours}h ${mins}m ${secs}s.`;
+      setTimeout(tick, 1000);
+    };
+    tick();
+  }
+  startAnswerCountdown(answersAvailableAt);
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+{% block title %}{{ practice.title }}{% endblock %}
+{% block content %}
+<div class="row between">
+  <div>
+    <div class="eyebrow">PRACTICE RECORD</div>
+    <h1>{{ practice.title }}</h1>
+    <p>{{ practice.provider }} · {{ practice.service or 'General' }}</p>
+  </div>
+  <div class="actions">
+    <a class="btn secondary" href="{{ url_for('practice.edit_practice', practice_id=practice.id) }}">✎ Edit Practice</a>
+    <a class="btn secondary" href="{{ url_for('practice.dashboard') }}">Back</a>
+  </div>
+</div>
+
+<div class="card notice-card">
+  <b>One step can contain multiple screenshots.</b>
+  <span>Paste one or more screenshots for the same action, type the step explanation once, and click <b>Save Step</b>. Each screenshot is kept under the same step number.</span>
+</div>
+
+{% if practice.description or practice.notes or practice.problems or practice.solutions or practice.commands %}
+<div class="card" id="practice-summary">
+  <div class="row between" style="align-items:flex-start;">
+    <div>
+      <div class="eyebrow">PRACTICE DESCRIPTION</div>
+      <h2 style="margin-top:4px;">What I Practiced</h2>
+    </div>
+    <a class="btn secondary" href="{{ url_for('practice.edit_practice', practice_id=practice.id) }}">✎ Edit Practice</a>
+  </div>
+
+  {% if practice.description %}
+  <div style="margin-top:14px;">
+    <h3>Description</h3>
+    <div class="text-block">{{ practice.description|e|replace('\n', '<br>')|safe }}</div>
+  </div>
+  {% endif %}
+
+  {% if practice.notes %}
+  <div style="margin-top:18px;">
+    <h3>What I Practiced / Learned</h3>
+    <div class="text-block">{{ practice.notes|e|replace('\n', '<br>')|safe }}</div>
+  </div>
+  {% endif %}
+
+  {% if practice.problems %}
+  <div style="margin-top:18px;">
+    <h3>Problems</h3>
+    <div class="text-block">{{ practice.problems|e|replace('\n', '<br>')|safe }}</div>
+  </div>
+  {% endif %}
+
+  {% if practice.solutions %}
+  <div style="margin-top:18px;">
+    <h3>Solutions</h3>
+    <div class="text-block">{{ practice.solutions|e|replace('\n', '<br>')|safe }}</div>
+  </div>
+  {% endif %}
+
+  {% if practice.commands %}
+  <div style="margin-top:18px;">
+    <h3>Commands / Technical Notes</h3>
+    <div class="text-block">{{ practice.commands|e|replace('\n', '<br>')|safe }}</div>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if practice.interview_questions %}
+<div class="card" id="interview-prep">
+  <div class="row between" style="align-items:flex-start;">
+    <div>
+      <div class="eyebrow">INTERVIEW PREPARATION</div>
+      <h2 style="margin-top:4px;">Interview Questions</h2>
+      <p class="muted">25 questions based on this practice, including practical and troubleshooting scenarios.</p>
+    </div>
+    <a class="btn secondary" href="{{ url_for('practice.edit_practice', practice_id=practice.id) }}#interview_questions">✎ Edit / Refresh Questions</a>
+  </div>
+
+  <div class="text-block interview-content" style="margin-top:14px;">{{ practice.interview_questions|e|replace('&lt;br&gt;', '<br>')|replace('&lt;br/&gt;', '<br>')|replace('&lt;br /&gt;', '<br>')|replace('\n', '<br>')|safe }}</div>
+
+  <div style="margin-top:24px;padding-top:18px;border-top:1px solid #e5e7eb;">
+    <h3>Interview Answers</h3>
+    {% if practice.interview_answers and practice.interview_answers_available_at and now >= practice.interview_answers_available_at %}
+      <p class="muted">✅ The 24-hour waiting period is complete. The answers are now available.</p>
+      <div class="text-block interview-content">{{ practice.interview_answers|e|replace('&lt;br&gt;', '<br>')|replace('&lt;br/&gt;', '<br>')|replace('&lt;br /&gt;', '<br>')|replace('\n', '<br>')|safe }}</div>
+    {% elif practice.interview_answers_available_at %}
+      <div class="card" style="margin:0;">
+        <strong>🔒 Answers are locked for 24 hours.</strong>
+        <p class="muted" id="detail-answers-countdown">Answers will be displayed after {{ practice.interview_answers_available_at.strftime('%d-%b-%Y %H:%M') }}.</p>
+      </div>
+    {% else %}
+      <div class="card" style="margin:0;">
+        <strong>🔒 Answers are not generated yet.</strong>
+        <p class="muted">Open Edit Practice and use Generate / Refresh with AI.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+{% if practice.interview_answers_available_at and now < practice.interview_answers_available_at %}
+<script>
+(function(){
+  const el=document.getElementById('detail-answers-countdown');
+  if(!el) return;
+  const target=new Date({{ practice.interview_answers_available_at.isoformat()|tojson }}).getTime();
+  function tick(){
+    const diff=target-Date.now();
+    if(diff<=0){el.textContent='The 24-hour waiting period is complete. Refresh this page to display the answers.';return;}
+    const h=Math.floor(diff/3600000), m=Math.floor((diff%3600000)/60000), sec=Math.floor((diff%60000)/1000);
+    el.textContent=`Answers will be displayed in ${h}h ${m}m ${sec}s.`;
+    setTimeout(tick,1000);
+  }
+  tick();
+})();
+</script>
+{% endif %}
+{% endif %}
+
+<div class="card" id="document">
+  <div class="row between">
+    <div>
+      <h2>📄 Final Document</h2>
+      <p class="muted">Finish all steps first. Save the Word document to your configured cloud storage, then convert it to PDF. Files are not displayed here; use the download buttons to save them to your local PC.</p>
+    </div>
+  </div>
+
+  <div class="actions" style="margin-top:14px;flex-wrap:wrap;">
+    <form method="post" action="{{ url_for('practice.update_document', practice_id=practice.id) }}">
+      <button class="btn secondary" type="submit" {% if not practice.screenshots %}disabled{% endif %}>Update Word Document</button>
+    </form>
+    <form method="post" action="{{ url_for('practice.save_document', practice_id=practice.id) }}">
+      <button class="btn" type="submit" {% if not practice.screenshots %}disabled{% endif %}>📄 Save &amp; Download Word Document</button>
+    </form>
+    {% if practice.document_blob_name %}
+      <a class="btn secondary" href="{{ url_for('practice.download_document', practice_id=practice.id) }}">⬇ Download Word Document</a>
+    {% endif %}
+    <form method="post" action="{{ url_for('practice.convert_document_to_pdf', practice_id=practice.id) }}">
+      <button class="btn" type="submit" {% if not practice.screenshots %}disabled{% endif %}>📕 Convert, Save &amp; Download PDF</button>
+    </form>
+    {% if practice.report %}
+      <a class="btn secondary" href="{{ url_for('practice.download_report', practice_id=practice.id) }}">⬇ Download PDF</a>
+    {% endif %}
+    {% if practice.document_blob_name or practice.report %}
+      <form method="post" action="{{ url_for('practice.edit_saved_document', practice_id=practice.id) }}">
+        <button class="btn secondary" type="submit">✎ Edit / Add More Screenshots</button>
+      </form>
+    {% endif %}
+  </div>
+
+  {% if practice.document_blob_name %}
+    <div class="document-ready" style="margin-top:14px;">
+      <b>✅ Word document saved to cloud storage.</b>
+      {% if practice.document_created_at %}<span class="muted"> {{ practice.document_created_at }}</span>{% endif %}
+      <div class="small-note muted">The Word document is stored in your configured cloud storage and downloaded to your local PC by the same button.</div>
+    </div>
+  {% endif %}
+
+  {% if practice.report %}
+    <div class="document-ready" style="margin-top:12px;">
+      <b>✅ PDF saved to cloud storage.</b>
+      <div class="small-note muted">The PDF is stored in your configured cloud storage and downloaded to your local PC by the Convert button.</div>
+    </div>
+  {% endif %}
+</div>
+
+<div class="card" id="add-step">
+  <h2>➕ Add Next Step</h2>
+  <p class="muted">Next available step number: <b>#{{ "%03d"|format((step_groups.keys()|list|max + 1) if step_groups else 1) }}</b></p>
+  <form method="post" enctype="multipart/form-data" action="{{ url_for('practice.add_step', practice_id=practice.id) }}" class="paste-zone" data-file-input="next-step-screenshot">
+    <div class="paste-title">📸 Paste screenshots for this step</div>
+    <div class="muted">Click inside this box and press <b>Ctrl + V</b> multiple times, or choose multiple image files. All selected screenshots will be saved under the same step number.</div>
+    <textarea name="step_explanation" rows="3" required placeholder="Type exactly what you did in this step." style="display:block;width:100%;margin-top:14px;"></textarea>
+    <input id="next-step-screenshot" class="screenshot-input" type="file" name="screenshots" accept=".png,.jpg,.jpeg,.webp" multiple style="margin-top:14px;">
+    <div class="paste-preview" data-preview-for="next-step-screenshot"></div>
+    <div class="actions" style="margin-top:12px;">
+      <button class="btn" type="submit">Save Step #{{ "%03d"|format((step_groups.keys()|list|max + 1) if step_groups else 1) }}</button>
+    </div>
+  </form>
+</div>
+
+<div class="card">
+  <div class="row between" style="align-items:flex-start;">
+    <div>
+      <h2>Saved Steps <span class="count">{{ step_groups|length }}</span></h2>
+      <p class="muted">Each step can contain multiple screenshots. Removing one screenshot keeps the step explanation and creates a replacement slot for that screenshot.</p>
+    </div>
+  </div>
+
+  {% for seq, rows in step_groups|dictsort %}
+  <div id="step-{{ seq }}" class="step-block">
+    <div class="row between" style="align-items:flex-start;">
+      <h3 style="margin:0 0 8px;">Step #{{ "%03d"|format(seq) }}</h3>
+    </div>
+
+    <textarea id="step-explanation-{{ seq }}" name="step_explanation" form="step-save-{{ seq }}" rows="3" required placeholder="Type exactly what you did in this step." style="display:block;width:100%;margin:0 0 14px;">{{ rows[0].step_explanation or '' }}</textarea>
+
+    {% for s in rows|sort(attribute='image_order') %}
+    <div class="step-image-item" style="margin:14px 0;padding:12px;border:1px solid #e5e7eb;border-radius:10px;">
+      <div class="row between" style="align-items:flex-start;">
+        <span class="muted">Screenshot {{ "%03d"|format(s.image_order or loop.index) }}</span>
+        {% if s.blob_name %}
+        <form method="post" action="{{ url_for('practice.delete_screenshot', practice_id=practice.id, screenshot_id=s.id) }}" onsubmit="return confirm('Remove only this screenshot? The step explanation and other screenshots will be kept.');">
+          <button class="link-danger" type="submit">Remove Screenshot</button>
+        </form>
+        {% endif %}
+      </div>
+      {% if s.blob_name %}
+        <div class="step-image-wrap"><img src="{{ url_for('practice.view_screenshot', screenshot_id=s.id) }}" alt="{{ s.original_name }}"></div>
+      {% else %}
+        <div class="paste-zone" style="margin-top:10px;" data-file-input="replacement-{{ s.id }}">
+          <div class="paste-title">📸 Paste replacement for Screenshot {{ "%03d"|format(s.image_order or loop.index) }}</div>
+          <div class="muted">The Step #{{ "%03d"|format(seq) }} explanation is kept. Paste or choose one replacement screenshot.</div>
+          <input id="replacement-{{ s.id }}" class="screenshot-input" type="file" name="replacement_screenshot" accept=".png,.jpg,.jpeg,.webp" form="replace-form-{{ s.id }}" style="margin-top:10px;">
+          <div class="paste-preview" data-preview-for="replacement-{{ s.id }}"></div>
+        </div>
+        <form id="replace-form-{{ s.id }}" method="post" enctype="multipart/form-data" action="{{ url_for('practice.replace_screenshot', practice_id=practice.id, screenshot_id=s.id) }}" style="margin-top:8px;">
+          <button class="btn" type="submit">Replace Screenshot</button>
+        </form>
+      {% endif %}
+    </div>
+    {% endfor %}
+
+    <div class="actions" style="margin-top:10px;">
+      <button class="btn" type="submit" form="step-save-{{ seq }}">Save Step</button>
+      <button class="btn secondary" type="submit" form="step-save-{{ seq }}" formaction="{{ url_for('practice.update_document', practice_id=practice.id) }}">Update Document</button>
+      {% if rows[0].blob_name %}<button class="btn secondary" type="submit" form="step-save-{{ seq }}" formaction="{{ url_for('practice.ai_step_suggestion', practice_id=practice.id, screenshot_id=rows[0].id) }}">✨ Suggest with AI</button>{% endif %}
+    </div>
+    <p class="muted small-note">Save Step updates the explanation for this entire step. Update Document rebuilds the Word document using all saved steps and all screenshots.</p>
+    <form id="step-save-{{ seq }}" method="post" action="{{ url_for('practice.save_step', practice_id=practice.id, screenshot_id=rows[0].id) }}"></form>
+  </div>
+  {% else %}
+    <p class="muted">No steps saved yet. Start with Screenshot #001 above.</p>
+  {% endfor %}
+</div>
+
+{% if practice.provider|lower == 'azure' %}
+<div class="card">
+  <h2>Azure Activity Log</h2>
+  <form method="post" action="{{ url_for('practice.azure_sync', practice_id=practice.id) }}"><button class="btn secondary" type="submit">Sync Now</button></form>
+  <p class="muted">Activity Log records Azure management events; it does not record every portal click.</p>
+  {% if practice.activities %}
+  <table><thead><tr><th>Time</th><th>Operation</th><th>Resource</th><th>Status</th></tr></thead><tbody>
+  {% for a in practice.activities|sort(attribute='event_time') %}<tr><td>{{ a.event_time }}</td><td>{{ a.operation_name }}</td><td>{{ a.resource_id }}</td><td>{{ a.status }}</td></tr>{% endfor %}
+  </tbody></table>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}
